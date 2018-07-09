@@ -1,3 +1,5 @@
+# https://prezi.com/r3lsnug_-bvc/session-1/
+
 # Pre-Requisites
 
 Install python 3.5 or above on your machine:

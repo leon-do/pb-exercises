@@ -146,12 +146,14 @@ class Point:
             raise RuntimeError('Points {}, {} are not on the same curve'.format(self, other))
         # Case 0.0: self is the point at infinity, return other
         # Case 0.1: other is the point at infinity, return self
-
+        if self.x is None:
+            return other
         # Case 1: self.x == other.x, self.y != other.y
         # Result is point at infinity
         # Remember to return an instance of this class:
         # self.__class__(x, y, a, b)
- 
+        if self.other is None:
+            return self
         # Case 2: self.x != other.x
         # Formula (x3,y3)==(x1,y1)+(x2,y2)
         # s=(y2-y1)/(x2-x1)

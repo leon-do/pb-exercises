@@ -136,23 +136,34 @@ class Tx:
     def verify_input(self, input_index):
         '''Returns whether the input has a valid signature'''
         # get the relevant input
+        tx_in = self.tx_ins[input_index]
         # parse the point from the sec format (tx_in.sec_pubkey())
+        point = S256Point.parse(tx_in.sec_pubkey())
         # parse the signature from the der format (tx_in.der_signature())
+        signature = Signature.parse(tx_in.der_signature())
         # get the hash type from the input (tx_in.hash_type())
+        hash_type = tx_in.hash_type()
         # get the sig_hash (z)
+        z = self.sig_hash(input_index, hash_type)
         # use point.verify on the z and signature
-        raise NotImplementedError
+        return point.verify(z, signature)
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
-        # get the sig hash (z)
+        # get the sig_hash (z)
+        z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
+        der = private_key.sign(z).der()
         # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
+        sig = der + hash_type.to_bytes(1, 'big')
         # calculate the sec
+        sec = private_key.point.sec()
         # initialize a new script with [sig, sec] as the elements
+        script_sig = Script([sig, sec])
         # change input's script_sig to new script
+        self.tx_ins[input_index].script_sig = script_sig
         # return whether sig is valid using self.verify_input
-        raise NotImplementedError
+        return self.verify_input(input_index)
 
 
 class TxIn:
@@ -209,9 +220,9 @@ class TxIn:
     @classmethod
     def get_url(cls, testnet=False):
         if testnet:
-            return 'https://testnet.blockexplorer.com/api'
+            return 'https://test-insight.bitpay.com/api'
         else:
-            return 'https://blockexplorer.com/api'
+            return 'https://btc.coinquery.com/api'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:
@@ -222,7 +233,7 @@ class TxIn:
                 if 'rawtx' not in js_response:
                     raise RuntimeError('got from server: {}'.format(js_response))
             except:
-                raise RuntimeError('got from server: {}'.format(response.text))
+                raise RuntimeError('got from server: {} {}'.format(response.text, url))
             raw = bytes.fromhex(js_response['rawtx'])
             stream = BytesIO(raw)
             tx = Tx.parse(stream)

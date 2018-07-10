@@ -476,10 +476,14 @@ class S256Point(Point):
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking
         # remember 1/s = pow(s, N-2, N)
+        s_inv = pow(sig.s, N-2, N)
         # u = z / s
+        u = z * s_inv % N
         # v = r / s
+        v = sig.r * s_inv % N
         # u*G + v*P should have as the x coordinate, r
-        raise NotImplementedError
+        total = u*G + v*self
+        return total.x.num == sig.r
 
     @classmethod
     def parse(self, sec_bin):
@@ -669,19 +673,34 @@ class PrivateKey:
 
     def sign(self, z):
         # we need a random number k: randint(0, 2**256)
+        k = randint(0, 2**256)
         # r is the x coordinate of the resulting point k*G
+        r = (k*G).x.num
         # remember 1/k = pow(k, N-2, N)
+        k_inv = pow(k, N-2, N)
         # s = (z+r*secret) / k
+        s = (z + r*self.secret) * k_inv % N
+        if s > N/2:
+            s = N - s
         # return an instance of Signature:
         # Signature(r, s)
-        raise NotImplementedError
+        return Signature(r, s)
 
     def wif(self, compressed=True, testnet=False):
         # convert the secret from integer to a 32-bytes in big endian using num.to_bytes(32, 'big')
+        secret_bytes = self.secret.to_bytes(32, 'big')
         # prepend b'\xef' on testnet, b'\x80' on mainnet
+        if testnet:
+            prefix = b'\xef'
+        else:
+            prefix = b'\x80'
         # append b'\x01' if compressed
+        if compressed:
+            suffix = b'\x01'
+        else:
+            suffix = b''
         # encode_base58_checksum the whole thing
-        raise NotImplementedError
+        return encode_base58_checksum(prefix + secret_bytes + suffix)
 
 
 class PrivateKeyTest(TestCase):
